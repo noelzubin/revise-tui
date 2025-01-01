@@ -25,6 +25,9 @@ s               suspend card
 q               quit 
 ```
 
+All the data is stored in a sqlite database in the data dir.  
+On macos its stored in `~/Library/Application Support/revise/data.sqlite`
+
 # TODO
 - [ ] also add ease in revlog (1234)
 - [ ] fix fps
