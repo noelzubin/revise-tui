@@ -20,7 +20,11 @@ mod utils;
 
 #[derive(StructOpt)]
 enum Opt {
-    Tui,
+    #[structopt(name = "tui")]
+    Tui {
+        #[structopt(long, help = "Specify editor command to use")]
+        editor: Option<String>,
+    },
 }
 
 async fn tui(usecase: Usecase<SqliteStore>) -> Result<()> {
@@ -37,10 +41,12 @@ async fn tui(usecase: Usecase<SqliteStore>) -> Result<()> {
 async fn main() -> Result<()> {
     let opts = Opt::from_args();
 
-    let usecase = Usecase::new();
+    let usecase = match opts {
+        Opt::Tui { editor } => Usecase::new_with_editor(editor),
+    };
 
     match opts {
-        Opt::Tui => {
+        Opt::Tui { .. } => {
             tui(usecase).await?;
         }
     };
