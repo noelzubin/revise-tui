@@ -288,7 +288,7 @@ impl App {
                             );
                         });
                     }
-                    KeyCode::Tab => {
+                    KeyCode::Tab | KeyCode::Char('h') => {
                         self.state.focused = Focused::Sidebar;
                     }
                     KeyCode::Char('k') => {
@@ -416,7 +416,7 @@ impl App {
             }
         } else if self.state.focused == Focused::Sidebar {
             match key.code {
-                KeyCode::Tab => {
+                KeyCode::Tab | KeyCode::Char('l') => {
                     self.state.focused = Focused::Cards;
                 }
                 KeyCode::Char('k') => {
