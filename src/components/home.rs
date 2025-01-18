@@ -397,6 +397,7 @@ impl Component for Keybindings {
             vec![
                 ("k/j", "Previous/Next Collection"),
                 ("Tab", "Focus Cards"),
+                ("d", "Delete deck"),
                 ("q", "Quit"),
             ]
         } else {
