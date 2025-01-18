@@ -210,6 +210,30 @@ impl Component for ReviseTable {
             frame.render_widget(revise_text, area);
         }
 
+        // Render delete confirmation prompt
+        if let Some(deck_id) = app_state.confirm_delete_deck {
+            let text = Text::from(vec![
+                "Are you sure you want to delete this deck?\n".into(),
+                "This will delete all cards in the deck.\n\n".into(),
+                "[y] Yes  [n] No".yellow(),
+            ]);
+
+            let confirm_text = Paragraph::new(text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("|Confirm Delete|")
+                        .padding(Padding::horizontal(2))
+                        .border_style(Style::default().fg(Color::Red)),
+                )
+                .alignment(Alignment::Center);
+
+            let area = center(area, Constraint::Length(50), Constraint::Length(7));
+
+            frame.render_widget(Clear, area);
+            frame.render_widget(confirm_text, area);
+        }
+
         let card_desc = Paragraph::new(card.desc.to_string()).style(Style::new().fg(Color::White));
         frame.render_widget(
             card_desc.block(
