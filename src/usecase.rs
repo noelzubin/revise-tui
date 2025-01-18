@@ -27,6 +27,44 @@ impl Usecase<SqliteStore> {
         }
     }
 
+    fn get_editor(&self) -> String {
+        match &self.editor {
+            Some(cmd) => cmd.clone(),
+            None => std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string())
+        }
+    }
+
+    fn spawn_editor(&self, path: &str) {
+        let editor_cmd = self.get_editor();
+        let mut chars = editor_cmd.chars().peekable();
+        let mut args = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+
+        while let Some(c) = chars.next() {
+            match c {
+                '\'' => in_quotes = !in_quotes,
+                ' ' if !in_quotes => {
+                    if !current.is_empty() {
+                        args.push(current.clone());
+                        current.clear();
+                    }
+                },
+                _ => current.push(c),
+            }
+        }
+        if !current.is_empty() {
+            args.push(current);
+        }
+
+        let program = args.first().expect("Editor command cannot be empty");
+        let mut command = Command::new(program);
+        command.args(&args[1..]);
+        command.arg(path);
+        
+        command.status().expect("Failed to launch editor");
+    }
+
     pub fn add_deck(&self, name: &str) {
         self.store.add_deck(name).unwrap();
     }
