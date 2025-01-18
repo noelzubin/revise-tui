@@ -213,9 +213,10 @@ impl Component for ReviseTable {
         // Render delete confirmation prompt
         if let Some(deck_id) = app_state.confirm_delete_deck {
             let text = Text::from(vec![
-                "Are you sure you want to delete this deck?\n".into(),
-                "This will delete all cards in the deck.\n\n".into(),
-                "[y] Yes  [n] No".yellow(),
+                Line::from("Are you sure you want to delete this deck?"),
+                Line::from("This will delete all cards in the deck."),
+                Line::from(""),
+                Line::from("[y] Yes  [n] No".yellow()),
             ]);
 
             let confirm_text = Paragraph::new(text)
