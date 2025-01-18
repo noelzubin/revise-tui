@@ -6,7 +6,7 @@ use std::process::Command;
 use std::{fmt, fs};
 
 fn spawn_neovim(path: &str) {
-    Command::new("lvim").arg(path).status().unwrap();
+    Command::new("kak").arg(path).status().unwrap();
 }
 
 pub struct Usecase<S: Store> {
