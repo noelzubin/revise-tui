@@ -197,6 +197,10 @@ impl Usecase<SqliteStore> {
         self.store.unsuspend_card(id).unwrap();
     }
 
+    pub fn delete_deck(&self, id: ID) {
+        self.store.delete_deck(id).unwrap();
+    }
+
     pub fn get_next_dates(&self, card: &CardSummary) -> Vec<(&'static str, f32)> {
         // Find next states
         let last_review = self.store.get_last_review(card.id).unwrap();

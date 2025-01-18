@@ -432,6 +432,17 @@ impl App {
                         &self.state.decks,
                     );
                 }
+                KeyCode::Char('d') => {
+                    if self.state.decks_list_state.selected().unwrap() >= 3 {
+                        let deck_index = self.state.decks_list_state.selected().unwrap() - 3;
+                        if let Some(deck) = self.state.decks.get(deck_index) {
+                            self.usecase.delete_deck(deck.id);
+                            self.state.decks = self.usecase.list_decks();
+                            self.state.decks_list_state.select(Some(0));
+                            self.state.cards = self.get_cards_in_deck(0, &self.state.decks);
+                        }
+                    }
+                }
                 _ => {}
             }
         }
