@@ -5,8 +5,15 @@ use fsrs::{MemoryState, FSRS};
 use std::process::Command;
 use std::{fmt, fs};
 
-fn spawn_neovim(path: &str) {
-    Command::new("kak").arg(path).status().unwrap();
+fn get_editor() -> String {
+    std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string())
+}
+
+fn spawn_editor(path: &str) {
+    Command::new(get_editor())
+        .arg(path)
+        .status()
+        .expect("Failed to launch editor");
 }
 
 pub struct Usecase<S: Store> {
@@ -39,7 +46,7 @@ impl Usecase<SqliteStore> {
 
         // retry until you get desc from frontmatter
         let (title, deck_name, desc) = loop {
-            spawn_neovim(TMP_FILE_PATH);
+            spawn_editor(TMP_FILE_PATH);
             let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
             let fm = parse_yaml_frontmatter(&desc);
 
@@ -86,7 +93,7 @@ impl Usecase<SqliteStore> {
         fs::write(TMP_FILE_PATH, card.desc).unwrap();
 
         let (title, deck_name, desc) = loop {
-            spawn_neovim(TMP_FILE_PATH);
+            spawn_editor(TMP_FILE_PATH);
             let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
             let fm = parse_yaml_frontmatter(&desc);
             if let Some(title) = fm.get("title") {
