@@ -41,11 +41,11 @@ async fn tui(usecase: Usecase<SqliteStore>) -> Result<()> {
 async fn main() -> Result<()> {
     let opts = Opt::from_args();
 
-    let usecase = match opts {
-        Opt::Tui { editor } => Usecase::new_with_editor(editor),
+    let usecase = match &opts {
+        Opt::Tui { editor } => Usecase::new_with_editor(editor.clone()),
     };
 
-    match opts {
+    match &opts {
         Opt::Tui { .. } => {
             tui(usecase).await?;
         }

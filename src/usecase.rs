@@ -78,9 +78,9 @@ impl Usecase<SqliteStore> {
     }
 
     // If no desc get the desc from neovim file
-    pub fn add_card(&self) {
+    pub fn add_card(&self, current_deck: Option<&str>) {
         const TMP_FILE_PATH: &str = "/tmp/revise_card.md";
-        let content = "---\ntitle:\ndeck:\n---\n";
+        let content = format!("---\ntitle:\ndeck: {}\n---\n", current_deck.unwrap_or(""));
         fs::write(TMP_FILE_PATH, content).unwrap();
 
         // retry until you get desc from frontmatter
