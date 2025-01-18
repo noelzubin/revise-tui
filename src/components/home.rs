@@ -395,8 +395,8 @@ impl Component for Keybindings {
     fn draw(&mut self, app_state: &mut AppState, frame: &mut Frame, area: Rect) -> Result<()> {
         let key_bindings = if app_state.focused == Focused::Sidebar {
             vec![
+                ("Tab/l", "Focus cards"),
                 ("k/j", "Previous/Next Collection"),
-                ("Tab", "Focus Cards"),
                 ("d", "Delete deck"),
                 ("q", "Quit"),
             ]
@@ -406,8 +406,8 @@ impl Component for Keybindings {
             } else {
                 vec![
                     ("<n>", "Quick deck filter"),
-                    ("j", "Move down"),
-                    ("k", "Move up"),
+                    ("Tab/h", "Focus decks"),
+                    ("j/k", "Move down/up"),
                     ("a", "Add card"),
                     ("e", "Edit card"),
                     ("d", "Delete card"),
