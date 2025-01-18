@@ -33,6 +33,7 @@ pub struct AppState {
     pub cards_table_input: Input,
     pub decks_list_state: ListState,
     pub revise_card: Option<ReviseCardDetails>,
+    pub confirm_delete_deck: Option<ID>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -58,6 +59,7 @@ impl Default for AppState {
             cards_table_searching: false,
             decks_list_state: ListState::default().with_selected(Some(0)),
             revise_card: None,
+            confirm_delete_deck: None,
         }
     }
 }
@@ -436,12 +438,21 @@ impl App {
                     if self.state.decks_list_state.selected().unwrap() >= 3 {
                         let deck_index = self.state.decks_list_state.selected().unwrap() - 3;
                         if let Some(deck) = self.state.decks.get(deck_index) {
-                            self.usecase.delete_deck(deck.id);
-                            self.state.decks = self.usecase.list_decks();
-                            self.state.decks_list_state.select(Some(0));
-                            self.state.cards = self.get_cards_in_deck(0, &self.state.decks);
+                            self.state.confirm_delete_deck = Some(deck.id);
                         }
                     }
+                }
+                KeyCode::Char('y') => {
+                    if let Some(deck_id) = self.state.confirm_delete_deck {
+                        self.usecase.delete_deck(deck_id);
+                        self.state.decks = self.usecase.list_decks();
+                        self.state.decks_list_state.select(Some(0));
+                        self.state.cards = self.get_cards_in_deck(0, &self.state.decks);
+                        self.state.confirm_delete_deck = None;
+                    }
+                }
+                KeyCode::Char('n') | KeyCode::Esc => {
+                    self.state.confirm_delete_deck = None;
                 }
                 _ => {}
             }
