@@ -352,7 +352,13 @@ impl App {
                     match key.code {
                         KeyCode::Char('a') => {
                             tui.exit().unwrap();
-                            self.usecase.add_card();
+                            let current_deck = if self.state.decks_list_state.selected().unwrap() >= 3 {
+                                let deck_index = self.state.decks_list_state.selected().unwrap() - 3;
+                                Some(self.state.decks[deck_index].name.as_str())
+                            } else {
+                                None
+                            };
+                            self.usecase.add_card(current_deck);
                             tui.enter()?;
                             tui.terminal.clear().unwrap();
                             self.state.decks = self.usecase.list_decks();
