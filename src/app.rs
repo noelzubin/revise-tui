@@ -34,6 +34,7 @@ pub struct AppState {
     pub decks_list_state: ListState,
     pub revise_card: Option<ReviseCardDetails>,
     pub confirm_delete_deck: Option<ID>,
+    pub confirm_delete_card: Option<ID>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -60,6 +61,7 @@ impl Default for AppState {
             decks_list_state: ListState::default().with_selected(Some(0)),
             revise_card: None,
             confirm_delete_deck: None,
+            confirm_delete_card: None,
         }
     }
 }
@@ -303,14 +305,23 @@ impl App {
                     KeyCode::Char('d') => {
                         if let Some(selected_row) = self.state.cards_table_state.selected() {
                             if let Some(card) = self.state.cards.get(selected_row) {
-                                self.usecase.remove_card(card.id);
+                                self.state.confirm_delete_card = Some(card.id);
                             }
                         }
-                        self.state.decks = self.usecase.list_decks();
-                        self.state.cards = self.get_cards_in_deck(
-                            self.state.decks_list_state.selected().unwrap(),
-                            &self.state.decks,
-                        );
+                    }
+                    KeyCode::Char('y') => {
+                        if let Some(card_id) = self.state.confirm_delete_card {
+                            self.usecase.remove_card(card_id);
+                            self.state.decks = self.usecase.list_decks();
+                            self.state.cards = self.get_cards_in_deck(
+                                self.state.decks_list_state.selected().unwrap(),
+                                &self.state.decks,
+                            );
+                            self.state.confirm_delete_card = None;
+                        }
+                    }
+                    KeyCode::Char('n') | KeyCode::Esc => {
+                        self.state.confirm_delete_card = None;
                     }
 
                     KeyCode::Char('e') => {
