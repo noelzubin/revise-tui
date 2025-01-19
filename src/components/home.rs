@@ -266,7 +266,7 @@ fn render_card_table(app_state: &mut AppState, frame: &mut Frame, area: Rect) ->
         return Ok(());
     }
 
-    let header = ["Id", "Deck", "Title", "Due Date"]
+    let header = ["Title", "Due Date", "Deck", "Id"]
         .into_iter()
         .map(Cell::from)
         .collect::<Row>()
@@ -302,17 +302,17 @@ fn render_card_table(app_state: &mut AppState, frame: &mut Frame, area: Rect) ->
         Table::new(
             cards_iter.map(|item| {
                 Row::new(vec![
-                    Cell::from(item.id.to_string()),
-                    Cell::from(item.deck.clone()),
                     Cell::from(item.title.clone()),
                     Cell::from(date_to_relative_string(item.next_show_date)),
+                    Cell::from(item.deck.clone()),
+                    Cell::from(item.id.to_string()),
                 ])
             }),
             vec![
-                Constraint::Length(10),
-                Constraint::Length(20),
                 Constraint::Length(35),
                 Constraint::Length(25),
+                Constraint::Length(20),
+                Constraint::Length(10),
             ],
         )
         .style(Style::new().fg(OFF_WHITE))
