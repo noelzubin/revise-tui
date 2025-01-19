@@ -83,25 +83,34 @@ impl Usecase<SqliteStore> {
         let content = format!("---\ntitle:\ndeck: {}\n---\n", current_deck.unwrap_or_default());
         fs::write(TMP_FILE_PATH, content).unwrap();
 
-        // retry until you get desc from frontmatter
+        // Try to get desc from frontmatter
+        self.spawn_editor(TMP_FILE_PATH);
+        let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
+        let fm = parse_yaml_frontmatter(&desc);
+
+        let mut title = fm.get("title").map(|s| s.trim().to_string());
+        let mut deck = fm.get("deck").map(|s| s.trim().to_string());
+
+        // If title field is empty, cancel card creation
+        if title.as_ref().map_or(true, |s| s.is_empty()) {
+            std::fs::remove_file(TMP_FILE_PATH).unwrap();
+            return;
+        }
+
+        // Otherwise, keep retrying until both fields are filled
         let (title, deck_name, desc) = loop {
+            if let (Some(t), Some(d)) = (&title, &deck) {
+                if !t.is_empty() && !d.is_empty() {
+                    break (t.clone(), d.clone(), desc.clone());
+                }
+            }
+            
             self.spawn_editor(TMP_FILE_PATH);
             let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
             let fm = parse_yaml_frontmatter(&desc);
-
-            if let Some(title) = fm.get("title") {
-                if !title.trim().is_empty() {
-                    if let Some(deck) = fm.get("deck") {
-                        if !deck.trim().is_empty() {
-                            break (
-                                title.trim().to_string(),
-                                deck.trim().to_string(),
-                                desc.to_string(),
-                            );
-                        }
-                    }
-                }
-            }
+            
+            title = fm.get("title").map(|s| s.trim().to_string());
+            deck = fm.get("deck").map(|s| s.trim().to_string());
         };
 
         std::fs::remove_file(TMP_FILE_PATH).unwrap();
