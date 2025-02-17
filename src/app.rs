@@ -33,6 +33,8 @@ pub struct AppState {
     pub cards_table_input: Input,
     pub decks_list_state: ListState,
     pub revise_card: Option<ReviseCardDetails>,
+    pub confirm_delete_deck: Option<ID>,
+    pub confirm_delete_card: Option<ID>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -58,6 +60,8 @@ impl Default for AppState {
             cards_table_searching: false,
             decks_list_state: ListState::default().with_selected(Some(0)),
             revise_card: None,
+            confirm_delete_deck: None,
+            confirm_delete_card: None,
         }
     }
 }
@@ -286,7 +290,7 @@ impl App {
                             );
                         });
                     }
-                    KeyCode::Tab => {
+                    KeyCode::Tab | KeyCode::Char('h') => {
                         self.state.focused = Focused::Sidebar;
                     }
                     KeyCode::Char('k') => {
@@ -301,14 +305,23 @@ impl App {
                     KeyCode::Char('d') => {
                         if let Some(selected_row) = self.state.cards_table_state.selected() {
                             if let Some(card) = self.state.cards.get(selected_row) {
-                                self.usecase.remove_card(card.id);
+                                self.state.confirm_delete_card = Some(card.id);
                             }
                         }
-                        self.state.decks = self.usecase.list_decks();
-                        self.state.cards = self.get_cards_in_deck(
-                            self.state.decks_list_state.selected().unwrap(),
-                            &self.state.decks,
-                        );
+                    }
+                    KeyCode::Char('y') => {
+                        if let Some(card_id) = self.state.confirm_delete_card {
+                            self.usecase.remove_card(card_id);
+                            self.state.decks = self.usecase.list_decks();
+                            self.state.cards = self.get_cards_in_deck(
+                                self.state.decks_list_state.selected().unwrap(),
+                                &self.state.decks,
+                            );
+                            self.state.confirm_delete_card = None;
+                        }
+                    }
+                    KeyCode::Char('n') | KeyCode::Esc => {
+                        self.state.confirm_delete_card = None;
                     }
 
                     KeyCode::Char('e') => {
@@ -352,7 +365,13 @@ impl App {
                     match key.code {
                         KeyCode::Char('a') => {
                             tui.exit().unwrap();
-                            self.usecase.add_card();
+                            let current_deck = if self.state.decks_list_state.selected().unwrap() >= 3 {
+                                let deck_index = self.state.decks_list_state.selected().unwrap() - 3;
+                                Some(self.state.decks[deck_index].name.as_str())
+                            } else {
+                                None
+                            };
+                            self.usecase.add_card(current_deck);
                             tui.enter()?;
                             tui.terminal.clear().unwrap();
                             self.state.decks = self.usecase.list_decks();
@@ -408,7 +427,7 @@ impl App {
             }
         } else if self.state.focused == Focused::Sidebar {
             match key.code {
-                KeyCode::Tab => {
+                KeyCode::Tab | KeyCode::Char('l') => {
                     self.state.focused = Focused::Cards;
                 }
                 KeyCode::Char('k') => {
@@ -425,6 +444,26 @@ impl App {
                         selected,
                         &self.state.decks,
                     );
+                }
+                KeyCode::Char('d') => {
+                    if self.state.decks_list_state.selected().unwrap() >= 3 {
+                        let deck_index = self.state.decks_list_state.selected().unwrap() - 3;
+                        if let Some(deck) = self.state.decks.get(deck_index) {
+                            self.state.confirm_delete_deck = Some(deck.id);
+                        }
+                    }
+                }
+                KeyCode::Char('y') => {
+                    if let Some(deck_id) = self.state.confirm_delete_deck {
+                        self.usecase.delete_deck(deck_id);
+                        self.state.decks = self.usecase.list_decks();
+                        self.state.decks_list_state.select(Some(0));
+                        self.state.cards = self.get_cards_in_deck(0, &self.state.decks);
+                        self.state.confirm_delete_deck = None;
+                    }
+                }
+                KeyCode::Char('n') | KeyCode::Esc => {
+                    self.state.confirm_delete_deck = None;
                 }
                 _ => {}
             }

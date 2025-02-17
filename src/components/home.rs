@@ -210,6 +210,52 @@ impl Component for ReviseTable {
             frame.render_widget(revise_text, area);
         }
 
+        // Render delete confirmations
+        if let Some(_card_id) = app_state.confirm_delete_card {
+            let text = Text::from(vec![
+                Line::from("Are you sure you want to delete this card?"),
+                Line::from(""),
+                Line::from("[y] Yes  [n] No".yellow()),
+            ]);
+
+            let confirm_text = Paragraph::new(text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("|Confirm Delete|")
+                        .padding(Padding::horizontal(2))
+                        .border_style(Style::default().fg(Color::Red)),
+                )
+                .alignment(Alignment::Center);
+
+            let area = center(area, Constraint::Length(50), Constraint::Length(6));
+
+            frame.render_widget(Clear, area);
+            frame.render_widget(confirm_text, area);
+        } else if let Some(_deck_id) = app_state.confirm_delete_deck {
+            let text = Text::from(vec![
+                Line::from("Are you sure you want to delete this deck?"),
+                Line::from("This will delete all cards in the deck."),
+                Line::from(""),
+                Line::from("[y] Yes  [n] No".yellow()),
+            ]);
+
+            let confirm_text = Paragraph::new(text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("|Confirm Delete|")
+                        .padding(Padding::horizontal(2))
+                        .border_style(Style::default().fg(Color::Red)),
+                )
+                .alignment(Alignment::Center);
+
+            let area = center(area, Constraint::Length(50), Constraint::Length(7));
+
+            frame.render_widget(Clear, area);
+            frame.render_widget(confirm_text, area);
+        }
+
         let card_desc = Paragraph::new(card.desc.to_string()).style(Style::new().fg(Color::White));
         frame.render_widget(
             card_desc.block(
@@ -241,7 +287,7 @@ fn render_card_table(app_state: &mut AppState, frame: &mut Frame, area: Rect) ->
         return Ok(());
     }
 
-    let header = ["Id", "Deck", "Title", "Due Date"]
+    let header = ["Title", "Due Date", "Deck", "Id"]
         .into_iter()
         .map(Cell::from)
         .collect::<Row>()
@@ -277,17 +323,17 @@ fn render_card_table(app_state: &mut AppState, frame: &mut Frame, area: Rect) ->
         Table::new(
             cards_iter.map(|item| {
                 Row::new(vec![
-                    Cell::from(item.id.to_string()),
-                    Cell::from(item.deck.clone()),
                     Cell::from(item.title.clone()),
                     Cell::from(date_to_relative_string(item.next_show_date)),
+                    Cell::from(item.deck.clone()),
+                    Cell::from(item.id.to_string()),
                 ])
             }),
             vec![
-                Constraint::Length(10),
-                Constraint::Length(20),
                 Constraint::Length(35),
                 Constraint::Length(25),
+                Constraint::Length(20),
+                Constraint::Length(10),
             ],
         )
         .style(Style::new().fg(OFF_WHITE))
@@ -370,8 +416,9 @@ impl Component for Keybindings {
     fn draw(&mut self, app_state: &mut AppState, frame: &mut Frame, area: Rect) -> Result<()> {
         let key_bindings = if app_state.focused == Focused::Sidebar {
             vec![
+                ("Tab/l", "Focus cards"),
                 ("k/j", "Previous/Next Collection"),
-                ("Tab", "Focus Cards"),
+                ("d", "Delete deck"),
                 ("q", "Quit"),
             ]
         } else {
@@ -380,8 +427,8 @@ impl Component for Keybindings {
             } else {
                 vec![
                     ("<n>", "Quick deck filter"),
-                    ("j", "Move down"),
-                    ("k", "Move up"),
+                    ("Tab/h", "Focus decks"),
+                    ("j/k", "Move down/up"),
                     ("a", "Add card"),
                     ("e", "Edit card"),
                     ("d", "Delete card"),

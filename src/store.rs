@@ -22,6 +22,7 @@ pub trait Store {
     fn update_card_details(&self, id: ID, title: &str, deck_id: ID, desc: &str)
         -> ReviseResult<()>;
     fn remove_orphan_decks(&self) -> ReviseResult<()>;
+    fn delete_deck(&self, deck_id: ID) -> ReviseResult<()>;
     fn list_card_summaries(
         &self,
         deck_id: Option<ID>,
@@ -179,6 +180,15 @@ impl Store for SqliteStore {
             SELECT DISTINCT deck_id FROM cards
         )";
         self.conn.execute(sql, [])?;
+        Ok(())
+    }
+
+    fn delete_deck(&self, deck_id: ID) -> ReviseResult<()> {
+        // First delete all cards in the deck
+        self.conn.execute("DELETE FROM revlog WHERE card_id IN (SELECT id FROM cards WHERE deck_id = $1)", &[&deck_id])?;
+        self.conn.execute("DELETE FROM cards WHERE deck_id = $1", &[&deck_id])?;
+        // Then delete the deck itself
+        self.conn.execute("DELETE FROM decks WHERE id = $1", &[&deck_id])?;
         Ok(())
     }
 

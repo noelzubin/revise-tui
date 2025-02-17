@@ -1,9 +1,9 @@
 [package]
-name = "revise"
-version = "0.1.0"
+name = "evise"
+version = "0.2.0"
 edition = "2021"
 description = "tui for the revise cli"
-authors = ["noelzubin <noelzubinvictor@gmail.com>"]
+authors = ["noelzubin <noelzubinvictor@gmail.com>", "evan <evan@evannn.net>"]
 build = "build.rs"
 
 

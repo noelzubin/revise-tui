@@ -5,18 +5,64 @@ use fsrs::{MemoryState, FSRS};
 use std::process::Command;
 use std::{fmt, fs};
 
-fn spawn_neovim(path: &str) {
-    Command::new("lvim").arg(path).status().unwrap();
-}
-
 pub struct Usecase<S: Store> {
     store: S,
+    editor: Option<String>,
 }
 
 impl Usecase<SqliteStore> {
     pub fn new() -> Self {
         let store = SqliteStore::new();
-        Usecase { store }
+        Usecase { 
+            store,
+            editor: None,
+        }
+    }
+
+    pub fn new_with_editor(editor: Option<String>) -> Self {
+        let store = SqliteStore::new();
+        Usecase { 
+            store,
+            editor,
+        }
+    }
+
+    fn get_editor(&self) -> String {
+        match &self.editor {
+            Some(cmd) => cmd.clone(),
+            None => std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string())
+        }
+    }
+
+    fn spawn_editor(&self, path: &str) {
+        let editor_cmd = self.get_editor();
+        let mut chars = editor_cmd.chars().peekable();
+        let mut args = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+
+        while let Some(c) = chars.next() {
+            match c {
+                '\'' => in_quotes = !in_quotes,
+                ' ' if !in_quotes => {
+                    if !current.is_empty() {
+                        args.push(current.clone());
+                        current.clear();
+                    }
+                },
+                _ => current.push(c),
+            }
+        }
+        if !current.is_empty() {
+            args.push(current);
+        }
+
+        let program = args.first().expect("Editor command cannot be empty");
+        let mut command = Command::new(program);
+        command.args(&args[1..]);
+        command.arg(path);
+        
+        command.status().expect("Failed to launch editor");
     }
 
     pub fn add_deck(&self, name: &str) {
@@ -32,30 +78,39 @@ impl Usecase<SqliteStore> {
     }
 
     // If no desc get the desc from neovim file
-    pub fn add_card(&self) {
+    pub fn add_card(&self, current_deck: Option<&str>) {
         const TMP_FILE_PATH: &str = "/tmp/revise_card.md";
-        let content = "---\ntitle:\ndeck:\n---\n";
+        let content = format!("---\ntitle:\ndeck: {}\n---\n", current_deck.unwrap_or_default());
         fs::write(TMP_FILE_PATH, content).unwrap();
 
-        // retry until you get desc from frontmatter
-        let (title, deck_name, desc) = loop {
-            spawn_neovim(TMP_FILE_PATH);
-            let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
-            let fm = parse_yaml_frontmatter(&desc);
+        // Try to get desc from frontmatter
+        self.spawn_editor(TMP_FILE_PATH);
+        let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
+        let fm = parse_yaml_frontmatter(&desc);
 
-            if let Some(title) = fm.get("title") {
-                if !title.trim().is_empty() {
-                    if let Some(deck) = fm.get("deck") {
-                        if !deck.trim().is_empty() {
-                            break (
-                                title.trim().to_string(),
-                                deck.trim().to_string(),
-                                desc.to_string(),
-                            );
-                        }
-                    }
+        let mut title = fm.get("title").map(|s| s.trim().to_string());
+        let mut deck = fm.get("deck").map(|s| s.trim().to_string());
+
+        // If title field is empty, cancel card creation
+        if title.as_ref().map_or(true, |s| s.is_empty()) {
+            std::fs::remove_file(TMP_FILE_PATH).unwrap();
+            return;
+        }
+
+        // Otherwise, keep retrying until both fields are filled
+        let (title, deck_name, desc) = loop {
+            if let (Some(t), Some(d)) = (&title, &deck) {
+                if !t.is_empty() && !d.is_empty() {
+                    break (t.clone(), d.clone(), desc.clone());
                 }
             }
+            
+            self.spawn_editor(TMP_FILE_PATH);
+            let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
+            let fm = parse_yaml_frontmatter(&desc);
+            
+            title = fm.get("title").map(|s| s.trim().to_string());
+            deck = fm.get("deck").map(|s| s.trim().to_string());
         };
 
         std::fs::remove_file(TMP_FILE_PATH).unwrap();
@@ -86,7 +141,7 @@ impl Usecase<SqliteStore> {
         fs::write(TMP_FILE_PATH, card.desc).unwrap();
 
         let (title, deck_name, desc) = loop {
-            spawn_neovim(TMP_FILE_PATH);
+            self.spawn_editor(TMP_FILE_PATH);
             let desc = std::fs::read_to_string(TMP_FILE_PATH).unwrap();
             let fm = parse_yaml_frontmatter(&desc);
             if let Some(title) = fm.get("title") {
@@ -149,6 +204,10 @@ impl Usecase<SqliteStore> {
 
     pub fn unsuspend_card(&self, id: ID) {
         self.store.unsuspend_card(id).unwrap();
+    }
+
+    pub fn delete_deck(&self, id: ID) {
+        self.store.delete_deck(id).unwrap();
     }
 
     pub fn get_next_dates(&self, card: &CardSummary) -> Vec<(&'static str, f32)> {
